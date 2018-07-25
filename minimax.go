@@ -245,7 +245,7 @@ func (node *Node) generateChilds(player int, eval bool) *Node {
 				// board := deepcopy.Copy(node.Data)
 				node.Data[k_col][k_cell] = 0
 
-				PrintMemUsage()
+				// PrintMemUsage()
 
 				if eval == true {
 					// evaluate state

@@ -6,10 +6,10 @@
 package main
 
 import (
-	_ "fmt"
-	_ "strconv"
+	"fmt"
+	"strconv"
 	_ "github.com/mohae/deepcopy"
-	_ "runtime"
+	"runtime"
 )
 
 // Node represents an element in the decision tree
@@ -49,14 +49,12 @@ func (node *Node) Evaluate(board [][]int, plies int, player int) {
 	eval := false
 	if plies == 0{
 		eval = true
-
 	}
 	node.generateChildMoves(board, player, eval)
 	// PrintMemUsage()
 	// fmt.Println(node.children)
 	for _, cn := range node.children {
 		// fmt.Println(cn.Data)
-		doMove(board, player, cn.Movement)
 		if plies != 0 {
 			if player == 1{
 				player = 2
@@ -73,10 +71,29 @@ func (node *Node) Evaluate(board [][]int, plies int, player int) {
 		} else if !cn.isOpponent && *cn.Score < *cn.parent.Score {
 			cn.parent.Score = cn.Score
 		}
-
-		undoMove(board, cn.Movement)
 	}
 }
+
+// Print the node for debugging purposes
+// func (node *Node) Print(level int) {
+// 	var padding = ""
+// 	for j := 0; j < level; j++ {
+// 		padding += " "
+// 	}
+
+// 	var s = ""
+// 	if node.Score != nil {
+// 		s = strconv.Itoa(*node.Score)
+// 	}
+
+// 	fmt.Println(padding, node.isOpponent, node.Data, "["+s+"]")
+
+// 	for _, cn := range node.children {
+// 		level += 2
+// 		cn.Print(level)
+// 		level -= 2
+// 	}
+// }
 
 // AddTerminal adds a terminal node (or leave node).  These nodes
 // should contain a score and no children
@@ -105,20 +122,20 @@ func (node *Node) isTerminal() bool {
 	return len(node.children) == 0
 }
 
-func neighbors(board [][]int, pos [2]int) [][]int {
+func (node *Node) neighbors(node [][]int, pos []int) [][]int {
 	column := pos[0]
 	line := pos[1]
 
 	var position []int
 	var l [][]int
 
-	if line < len(board[column])-1 { // DOWN
+	if line < len(node[column])-1 { // DOWN
 		position = []int{column, line + 1}
 		l = append(l, position)
 	}
 
-	if column <= len(board)-1 && column != 0 { // DIAGONAL L/D
-		if line != len(board[column])-1 && column < 6 {
+	if column <= len(node)-1 && column != 0 { // DIAGONAL L/D
+		if line != len(node[column])-1 && column < 6 {
 			position = []int{column - 1, line}
 			l = append(l, position)
 		} else if column >= 6 {
@@ -127,7 +144,7 @@ func neighbors(board [][]int, pos [2]int) [][]int {
 		}
 	}
 
-	if column <= len(board)-1 && column != 0 { // DIAGONAL L/U
+	if column <= len(node)-1 && column != 0 { // DIAGONAL L/U
 		if column < 6 && line != 0 {
 			position = []int{column - 1, line - 1}
 			l = append(l, position)
@@ -142,7 +159,7 @@ func neighbors(board [][]int, pos [2]int) [][]int {
 		l = append(l, position)
 	}
 
-	if column < len(board)-1 { // DIAGONAL R/U
+	if column < len(node)-1 { // DIAGONAL R/U
 		if column < 5 {
 			position = []int{column + 1, line}
 			l = append(l, position)
@@ -152,11 +169,11 @@ func neighbors(board [][]int, pos [2]int) [][]int {
 		}
 	}
 
-	if column < len(board)-1 { // DIAGONAL R/D
+	if column < len(node)-1 { // DIAGONAL R/D
 		if column < 5 {
 			position = []int{column + 1, line + 1}
 			l = append(l, position)
-		} else if column >= 5 && line != len(board[column+1]) {
+		} else if column >= 5 && line != len(node[column+1]) {
 			position = []int{column + 1, line}
 			l = append(l, position)
 		}
@@ -165,18 +182,18 @@ func neighbors(board [][]int, pos [2]int) [][]int {
 	return l
 }
 
-func heuristic(board [][]int, position [2]int) int {
+func (node *Node) heuristic(node [][]int, position []int) int {
 	counter := 0
-	v := neighbors(board, position)
+	v := node.neighbors(position)
 
 	for _, vizinho := range v {
-		if board[vizinho[0]][vizinho[1]] == 0 {
+		if node[vizinho[0]][vizinho[1]] == 0 {
 			counter = counter + 10
 		}
-		if board[vizinho[0]][vizinho[1]] == 1 { // VERIFICAR o 1
+		if node[vizinho[0]][vizinho[1]] == 1 { // VERIFICAR o 1
 			counter = counter + 20
 		}
-		if board[vizinho[0]][vizinho[1]] == 2 {
+		if node[vizinho[0]][vizinho[1]] == 2 {
 			counter = counter - 50
 		}
 	}
@@ -184,16 +201,36 @@ func heuristic(board [][]int, position [2]int) int {
 	return counter
 }
 
-func doMove(board [][]int, player int, movement [2]int){
-	board[movement[0]][movement[1]] = player
+func copy_board(original_board [][]int) [][]int {
+
+	var board [][]int = make([][]int, len(original_board))
+
+	for x, list := range original_board {
+		board[x] = make([]int, len(list))
+		for y, value := range list {
+			board[x][y] = value
+			// fmt.Println(x, y, value)
+		}
+	}
+	return board
 }
 
-func undoMove(board [][]int, movement [2]int){
-	board[movement[0]][movement[1]] = 0
+func PrintMemUsage() {
+        var m runtime.MemStats
+        runtime.ReadMemStats(&m)
+        // For info on each, see: https://golang.org/pkg/runtime/#MemStats
+        fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
+        fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+        fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
+        fmt.Printf("\tNumGC = %v\n", m.NumGC)
 }
 
-func (node *Node) generateChildMoves(board [][]int, player int, eval bool) *Node {
-	for k_col, col := range board {
+func bToMb(b uint64) uint64 {
+    return b / 1024 / 1024
+}
+
+func (node *Node) generateChilds(player int, eval bool) *Node {
+	for k_col, col := range node.Data {
 		for k_cell, cell := range col {
 			if cell == 0 {
 				// node.Data[k_col][k_cell] = player
@@ -204,7 +241,7 @@ func (node *Node) generateChildMoves(board [][]int, player int, eval bool) *Node
 				
 				if eval == true {
 					// evaluate state
-					score := heuristic(board, [2]int{k_col,k_cell})
+					score := node.heuristic([]int{k_col,k_cell})
 					// add child node to node child list
 					node.AddTerminal(score, [2]int{k_col,k_cell})
 					}else{
@@ -213,7 +250,7 @@ func (node *Node) generateChildMoves(board [][]int, player int, eval bool) *Node
 					}
 				}
 
-				// node.Data[k_col][k_cell] = 0
+				node.Data[k_col][k_cell] = 0
 		}
 	}
 

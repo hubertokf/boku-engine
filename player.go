@@ -10,6 +10,7 @@ import (
 	"strings"
 	"strconv"
 	_ "net/http/pprof"
+	_ "unsafe"
 )
 
 var protocol = "http"
@@ -77,9 +78,8 @@ func main() {
 			if len(movements) > 2 {
 				board := get_board()
 				tree := NewNode()
-				tree.SetNodeData(board)
-
-				tree.Evaluate(3,1)
+				// tree.SetNodeData(board)
+				tree.Evaluate(board, 3, 1)
 				// fmt.Print("best")
 				// fmt.Println(best.Data)
 				// fmt.Println(*tree.Score)
@@ -89,6 +89,7 @@ func main() {
 				// fmt.Println(e.Movement)
 				res := make_move(1, e.Movement)
 				fmt.Println(res)
+				tree = NewNode()
 			} else {
 				fmt.Println("...")
 			}
